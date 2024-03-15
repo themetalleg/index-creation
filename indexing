@@ -1,0 +1,57 @@
+import json
+import re
+from collections import defaultdict
+import xlsxwriter
+
+# Load the JSON data from the file
+with open('content.json', 'r') as file:
+    pages = json.load(file)
+
+# Initialize a dictionary to hold word occurrences and the pages they appear on
+word_index = defaultdict(lambda: {'count': 0, 'pages': set()})
+
+# Process each page in the JSON data
+for page_number, text in pages.items():
+    # Remove punctuation from the text and convert it to lowercase
+    words = re.findall(r'\b\w+\b', text.lower())
+    # Update the word index with the words from this page
+    for word in words:
+        word_index[word]['count'] += 1
+        word_index[word]['pages'].add(int(page_number.split(' ')[1]))
+
+# Prepare the data for writing to Excel
+excel_data = []
+for word, details in word_index.items():
+    excel_data.append([
+        details['count'],
+        word,
+        ','.join(map(str, sorted(details['pages'])))
+    ])
+
+# Sort the data by word for easier reading (optional)
+excel_data.sort(key=lambda row: row[1])
+
+# Create a new Excel file and add a worksheet
+workbook = xlsxwriter.Workbook('word_index.xlsx')
+worksheet = workbook.add_worksheet()
+
+# Write the header
+worksheet.write('A1', 'Count')
+worksheet.write('B1', 'Word')
+worksheet.write('C1', 'Pages')
+
+# Start from the first cell below the headers.
+row = 1
+col = 0
+
+# Iterate over the data and write it out row by row.
+for count, word, pages in excel_data:
+    worksheet.write(row, col, count)
+    worksheet.write(row, col + 1, word)
+    worksheet.write(row, col + 2, pages)
+    row += 1
+
+# Close the Excel file
+workbook.close()
+
+print("The word index has been successfully created in an Excel file.")
